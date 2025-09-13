@@ -1,0 +1,135 @@
+@{
+    ViewData["Title"] = "Статистика заходов";
+}
+
+<div class="container">
+    <h1 class="mb-4">Статистика заходов на сайт</h1>
+    
+    @if (ViewData["Stats"] != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Статистика по страницам</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Страница</th>
+                                        <th>Всего заходов</th>
+                                        <th>Подтверждено</th>
+                                        <th>Процент подтверждения</th>
+                                        <th>Последний заход</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var stat in ViewData["Stats"] as dynamic)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <code>@stat.Path</code>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">@stat.TotalVisits</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">@stat.ConfirmedVisits</span>
+                                            </td>
+                                            <td>
+                                                @{
+                                                    var percentage = stat.TotalVisits > 0 ? (double)stat.ConfirmedVisits / stat.TotalVisits * 100 : 0;
+                                                }
+                                                <div class="progress" style="width: 100px;">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: @percentage.ToString("F1")%" 
+                                                         aria-valuenow="@percentage" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        @percentage.ToString("F1")%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @stat.LastVisit.ToString("dd.MM.yyyy HH:mm")
+                                                </small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Общая статистика</h5>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var stats = ViewData["Stats"] as IEnumerable<dynamic>;
+                            var totalVisits = stats?.Sum(s => (int)s.TotalVisits) ?? 0;
+                            var totalConfirmed = stats?.Sum(s => (int)s.ConfirmedVisits) ?? 0;
+                            var overallPercentage = totalVisits > 0 ? (double)totalConfirmed / totalVisits * 100 : 0;
+                        }
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <h3>@totalVisits</h3>
+                                        <p class="mb-0">Всего заходов</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <h3>@totalConfirmed</h3>
+                                        <p class="mb-0">Подтверждено</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <h3>@overallPercentage.ToString("F1")%</h3>
+                                        <p class="mb-0">Процент подтверждения</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body">
+                                        <h3>@(stats?.Count() ?? 0)</h3>
+                                        <p class="mb-0">Уникальных страниц</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <h4>Нет данных</h4>
+            <p>Пока нет заходов для отображения статистики.</p>
+        </div>
+    }
+    
+    <div class="mt-4">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад на главную
+        </a>
+    </div>
+</div>
