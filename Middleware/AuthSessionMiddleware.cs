@@ -24,29 +24,46 @@ namespace ASP_421.Middleware
 
             if (context.Session.Keys.Contains("SignIn"))
             {
-                UserAccess userAccess =
-                    JsonSerializer.Deserialize<UserAccess>(
-                        context.Session.GetString("SignIn")!)!;
-
-                var claims = new List<Claim>
+                try
                 {
-                    new Claim(ClaimTypes.Name, userAccess.User.Name),
-                    new Claim(ClaimTypes.Email, userAccess.User.Email),
-                    new Claim("Id", userAccess.User.Id.ToString()),
-                };
+                    UserAccess userAccess =
+                        JsonSerializer.Deserialize<UserAccess>(
+                            context.Session.GetString("SignIn")!)!;
 
-                // Добавляем сведения о дате рождения, если она есть
-                if (userAccess.User.Birthdate.HasValue)
-                {
-                    claims.Add(new Claim(ClaimTypes.DateOfBirth, userAccess.User.Birthdate.Value.ToString("yyyy-MM-dd")));
+                    // Проверяем, что пользователь не удален
+                    if (userAccess.User.DeletedAt != null)
+                    {
+                        // Если пользователь удален, очищаем сессию
+                        context.Session.Remove("SignIn");
+                        return;
+                    }
+
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, userAccess.User.Name),
+                        new Claim(ClaimTypes.Email, userAccess.User.Email),
+                        new Claim("Id", userAccess.User.Id.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, userAccess.Login)
+                    };
+
+                    // Добавляем сведения о дате рождения, если она есть
+                    if (userAccess.User.Birthdate.HasValue)
+                    {
+                        claims.Add(new Claim(ClaimTypes.DateOfBirth, userAccess.User.Birthdate.Value.ToString("yyyy-MM-dd")));
+                    }
+
+                    context.User = new ClaimsPrincipal(
+                        new ClaimsIdentity(
+                            claims,
+                            nameof(AuthSessionMiddleware)
+                        )
+                    );
                 }
-
-                context.User = new ClaimsPrincipal(
-                    new ClaimsIdentity(
-                        claims,
-                        nameof(AuthSessionMiddleware)
-                    )
-                );
+                catch (Exception)
+                {
+                    // Если произошла ошибка при десериализации, очищаем сессию
+                    context.Session.Remove("SignIn");
+                }
             }
             await _next(context);
         }

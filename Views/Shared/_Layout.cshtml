@@ -39,16 +39,26 @@
                             .First(c => c.Type == ClaimTypes.Name)
                             .Value;
 
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <span class="auth-user-letter" title="@name">@(name[0])</span>
-                                <a class="btn btn-outline-secondary ms-2" href="?logout" >
-                                    <i class="bi bi-box-arrow-right"></i>
-                                </a>
-                            </div>
-                            @{
-                                var birthdayClaim = Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.DateOfBirth);
-                                if (birthdayClaim != null)
+                        String login = Context.User
+                        .Claims
+                        .First(c => c.Type == ClaimTypes.NameIdentifier)
+                        .Value;
+
+
+
+                        var birthdayClaim = Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.DateOfBirth);
+
+                        <div>
+                            <a asp-controller="User"
+                               asp-action="Profile"
+                               asp-route-id="@login"
+                               class="rounded-circle bg-info p-1 mx-2" title="@name">@(name[0])</a>
+                            <a class="btn btn-outline-secondary" href="?logout">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </a>
+                        
+                         
+                                @if (birthdayClaim != null)
                                 {
                                     var birthday = DateTime.Parse(birthdayClaim.Value);
                                     var today = DateTime.Today;
@@ -61,21 +71,21 @@
                                     
                                     var daysUntilBirthday = (nextBirthday - today).Days;
                                     
-                                    <span class="badge bg-info" title="До дня рождения @name">
+                                    <span class="badge bg-warning text-dark fw-bold fs-6 px-3 py-2" title="До дня рождения @name" style="font-size: 1.1rem !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                                         @if (daysUntilBirthday == 0)
                                         {
-                                            <text>Сьогодні день народження!</text>
+                                            <text>🎉 Сьогодні день народження! 🎉</text>
                                         }
                                         else if (daysUntilBirthday == 1)
                                         {
-                                            <text>Завтра день народження!</text>
+                                            <text>🎂 Завтра день народження! 🎂</text>
                                         }
                                         else
                                         {
-                                            <text>До дня народження @daysUntilBirthday дн.</text>
+                                            <text>📅 До дня народження @daysUntilBirthday дн. 📅</text>
                                         }
                                     </span>
-                                }
+                               
                             }
                         </div>
                     }

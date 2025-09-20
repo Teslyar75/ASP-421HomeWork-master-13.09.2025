@@ -17,6 +17,159 @@ namespace ASP_421.Controllers
 
         const String RegisterKey = "RegisterFormModel";
 
+        public IActionResult Profile(String id)
+        {
+            UserProfileViewModel viewModel = new();
+
+            viewModel.User = _dataContext
+                .UserAccesses
+                .Include(ua => ua.User)
+                .AsNoTracking()
+                .FirstOrDefault(ua => ua.Login == id && ua.User.DeletedAt == null)
+                ?.User;
+
+            var authUserId = HttpContext
+                .User
+                .Claims
+                .FirstOrDefault(c => c.Type == "Id")
+                ?.Value;
+            viewModel.IsPersonal = authUserId != null
+                && authUserId == viewModel.User?.Id.ToString();
+
+            return View(viewModel);
+        }
+
+        [HttpPatch]
+        public JsonResult Update([FromBody] JsonElement json)
+        {
+            if (json.GetPropertyCount() == 0)
+            {
+                return Json(new
+                {
+                    Status = 400,
+                    Data = "Missing data to update"
+                });
+            }
+            if (!(HttpContext.User.Identity?.IsAuthenticated ?? false))
+            {
+                return Json(new
+                {
+                    Status = 401,
+                    Data = "Unauthorized"
+                });
+            }
+            String id = HttpContext.User.Claims.First(c => c.Type == "Id").Value;
+
+            Data.Entities.User user = _dataContext
+                .Users
+                .Find(Guid.Parse(id))!;
+
+            // Валидация и обновление имени
+            if (json.TryGetProperty("Name", out JsonElement name))
+            {
+                string newName = name.GetString()!;
+                var nameValidation = ValidateName(newName);
+                if (nameValidation.IsValid)
+                {
+                    user.Name = newName;
+                }
+                else
+                {
+                    return Json(new
+                    {
+                        Status = 400,
+                        Data = nameValidation.ErrorMessage
+                    });
+                }
+            }
+
+            // Валидация и обновление email
+            if (json.TryGetProperty("Email", out JsonElement email))
+            {
+                string newEmail = email.GetString()!;
+                var emailValidation = ValidateEmail(newEmail, user.Id);
+                if (emailValidation.IsValid)
+                {
+                    user.Email = newEmail;
+                }
+                else
+                {
+                    return Json(new
+                    {
+                        Status = 400,
+                        Data = emailValidation.ErrorMessage
+                    });
+                }
+            }
+
+            _dataContext.SaveChanges();
+
+            // Обновляем данные в сессии
+            if (HttpContext.Session.Keys.Contains("SignIn"))
+            {
+                var userAccess = _dataContext.UserAccesses
+                    .Include(ua => ua.User)
+                    .FirstOrDefault(ua => ua.UserId == user.Id);
+                
+                if (userAccess != null)
+                {
+                    HttpContext.Session.SetString("SignIn", JsonSerializer.Serialize(userAccess));
+                }
+            }
+
+            return  Json(new
+            {
+                Status = 200,
+                Data = "Ok"
+            });
+        }
+
+        [HttpDelete]
+        public JsonResult Delete()
+        {
+            // перевірити чи користувач авторизованний
+            if (!(HttpContext.User.Identity?.IsAuthenticated ?? false))
+            {
+                return Json(new
+                {
+                    Status = 401,
+                    Data = "Unauthorized"
+                });
+            }
+
+            // визначитит його ID  та відшукати об'єкт БД
+            String id = HttpContext.User.Claims.First(c => c.Type == "Id").Value;
+            Data.Entities.User user = _dataContext.Users.Find(Guid.Parse(id))!;
+
+            if (user == null)
+            {
+                return Json(new
+                {
+                    Status = 404,
+                    Data = "User not found"
+                });
+            }
+
+            //видалити персональні дані (Name? Bithdate) - якщо можливо
+            // то встановлюємо NULL , якщо ні -порожній об'єкт
+            user.Name = "Deleted User";
+            user.Email = "deleted@example.com";
+            user.Birthdate = null;
+            
+            // встановити дату видалення 
+            user.DeletedAt = DateTime.UtcNow;
+            
+            _dataContext.SaveChanges();
+
+            // Очищаем сессию после удаления
+            HttpContext.Session.Remove("SignIn");
+
+            return Json(new
+            {
+                Status = 200,
+                Data = "User deleted successfully"
+            });
+        }
         public JsonResult SignIn()
         {
             // Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
@@ -104,7 +257,7 @@ namespace ASP_421.Controllers
                 .UserAccesses
                 .AsNoTracking()           // не моніторити зміни -- тільки читання
                 .Include(ua => ua.User)   // заповнення навігаційної властивості
-                .FirstOrDefault(ua => ua.Login == login);
+                .FirstOrDefault(ua => ua.Login == login && ua.User.DeletedAt == null);
 
             if (userAccess == null)
             {
@@ -234,11 +387,27 @@ namespace ASP_421.Controllers
             {
                 res[nameof(formModel.Email)] = "Введіть правильний формат E-mail";
             }
+            else if (_dataContext.Users.Any(u => u.Email == formModel.Email && u.DeletedAt == null))
+            {
+                res[nameof(formModel.Email)] = "Користувач з таким E-mail вже існує";
+            }
 
             // Валідація логіну
-            if (formModel.Login?.Contains(':') ?? false)
+            if (String.IsNullOrEmpty(formModel.Login))
+            {
+                res[nameof(formModel.Login)] = "Логін не може бути порожнім";
+            }
+            else if (formModel.Login.Contains(':'))
             {
                 res[nameof(formModel.Login)] = "У логіні не допускається ':' (двокрапка)";
+            }
+            else if (formModel.Login.Length < 3)
+            {
+                res[nameof(formModel.Login)] = "Логін повинен містити мінімум 3 символи";
+            }
+            else if (_dataContext.UserAccesses.Any(ua => ua.Login == formModel.Login))
+            {
+                res[nameof(formModel.Login)] = "Користувач з таким логіном вже існує";
             }
 
             // Валідація паролю
@@ -283,6 +452,54 @@ namespace ASP_421.Controllers
             {
                 return false;
             }
+        }
+
+        /// Валидирует имя пользователя
+        private (bool IsValid, string ErrorMessage) ValidateName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return (false, "Ім'я не може бути порожнім");
+            }
+            
+            if (!char.IsUpper(name[0]))
+            {
+                return (false, "Ім'я повинно починатися з великої літери");
+            }
+            
+            if (!name.All(c => char.IsLetter(c) || char.IsWhiteSpace(c)))
+            {
+                return (false, "Ім'я може містити тільки літери та пробіли");
+            }
+            
+            if (name.Length > 50)
+            {
+                return (false, "Ім'я не може бути довшим за 50 символів");
+            }
+            
+            return (true, string.Empty);
+        }
+
+        /// Валидирует email адрес с проверкой уникальности
+        private (bool IsValid, string ErrorMessage) ValidateEmail(string email, Guid currentUserId)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return (false, "E-mail не може бути порожнім");
+            }
+            
+            if (!IsValidEmail(email))
+            {
+                return (false, "Введіть правильний формат E-mail");
+            }
+            
+            // Проверяем уникальность email (исключая текущего пользователя)
+            if (_dataContext.Users.Any(u => u.Email == email && u.Id != currentUserId && u.DeletedAt == null))
+            {
+                return (false, "Користувач з таким E-mail вже існує");
+            }
+            
+            return (true, string.Empty);
         }
 
     }
