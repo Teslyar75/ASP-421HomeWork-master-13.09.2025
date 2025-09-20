@@ -1,0 +1,104 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Створення нової групи товарів</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Сообщения об ошибках -->
+                    <div id="validation-errors" class="alert alert-danger d-none" role="alert">
+                        <h6 class="alert-heading">Помилки валідації:</h6>
+                        <ul id="error-list" class="mb-0"></ul>
+                    </div>
+
+                    <!-- Сообщения об успехе -->
+                    <div id="success-message" class="alert alert-success d-none" role="alert">
+                        <i class="bi bi-check-circle"></i> <span id="success-text"></span>
+                    </div>
+
+                    <!-- Сообщения об общих ошибках -->
+                    <div id="general-error" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> <span id="error-text"></span>
+                    </div>
+
+                    <form id="admin-group-form" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-name" class="form-label">Назва групи *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-bookmark-check"></i>
+                                        </span>
+                                        <input name="group-name" id="group-name"
+                                               type="text" class="form-control" placeholder="Введіть назву групи"
+                                               aria-label="Назва групи" required />
+                                    </div>
+                                    <div class="invalid-feedback" id="name-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-description" class="form-label">Опис групи</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-chat-left-text"></i>
+                                        </span>
+                                        <input name="group-description" id="group-description"
+                                               type="text" class="form-control" placeholder="Введіть опис групи"
+                                               aria-label="Опис групи" />
+                                    </div>
+                                    <div class="invalid-feedback" id="description-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-slug" class="form-label">Slug (посилання) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-link"></i>
+                                        </span>
+                                        <input name="group-slug" id="group-slug"
+                                               type="text" class="form-control" placeholder="наприклад: electronics"
+                                               aria-label="Slug" required />
+                                    </div>
+                                    <div class="form-text">Тільки малі літери, цифри та дефіси</div>
+                                    <div class="invalid-feedback" id="slug-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-image" class="form-label">Зображення *</label>
+                                    <div class="input-group">
+                                        <label class="input-group-text" for="group-image">
+                                            <i class="bi bi-image"></i>
+                                        </label>
+                                        <input name="group-image" type="file" class="form-control" id="group-image" 
+                                               accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" required />
+                                    </div>
+                                    <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
+                                    <div class="invalid-feedback" id="image-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Створити групу
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

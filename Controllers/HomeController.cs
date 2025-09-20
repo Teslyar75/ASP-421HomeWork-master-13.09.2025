@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using ASP_421.Models;
 using ASP_421.Services.Kdf;
 using ASP_421.Services.Random;
@@ -70,12 +71,19 @@ namespace ASP_421.Controllers
         {
             try
             {
+                // Получаем логин пользователя из Claims, если авторизован
+                string? userLogin = null;
+                if (HttpContext.User.Identity?.IsAuthenticated == true)
+                {
+                    userLogin = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                }
+
                 var visit = new Visit
                 {
                     Id = Guid.NewGuid(),
                     VisitTime = DateTime.UtcNow,
                     RequestPath = HttpContext.Request.Path,
-                    UserLogin = HttpContext.Session.GetString("UserLogin"), // null если не авторизован
+                    UserLogin = userLogin, // null если не авторизован
                     ConfirmationCode = _confirmationService.GenerateCode(),
                     IsConfirmed = false,
                     UserAgent = HttpContext.Request.Headers["User-Agent"].FirstOrDefault(),

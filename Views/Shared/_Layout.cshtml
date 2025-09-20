@@ -31,6 +31,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Shop" asp-action="Index">Крамниця</a>
+                        </li>
                     </ul>
                     @if (Context.User.Identity?.IsAuthenticated ?? false)
                     {
@@ -44,11 +47,18 @@
                         .First(c => c.Type == ClaimTypes.NameIdentifier)
                         .Value;
 
+                        
+
 
 
                         var birthdayClaim = Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.DateOfBirth);
 
                         <div>
+                            <a asp-controller="Shop"
+                               asp-action="Admin"
+                               class="btn btn-outline-secondary text-decoration-none text-body"
+                               title="Панель управління"><i class="bi bi-speedometer2"></i></a>
+
                             <a asp-controller="User"
                                asp-action="Profile"
                                asp-route-id="@login"
@@ -168,6 +178,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/shop.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

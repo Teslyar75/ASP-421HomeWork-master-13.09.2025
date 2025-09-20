@@ -1,0 +1,87 @@
+﻿@{
+    ViewData["Title"] = "Shop";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Крамниця</h1>
+</div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Групи товарів</h5>
+                    <button id="btn-refresh-groups" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Оновити
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="groups-container">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Завантаження...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadGroups();
+    
+    document.getElementById('btn-refresh-groups').addEventListener('click', loadGroups);
+});
+
+function loadGroups() {
+    const container = document.getElementById('groups-container');
+    container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Завантаження...</span></div></div>';
+    
+    fetch('/api/group')
+        .then(response => response.json())
+        .then(data => {
+            if (data.Status === 'Ok') {
+                displayGroups(data.Data);
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">Помилка завантаження: ' + data.ErrorMessage + '</div>';
+            }
+        })
+        .catch(error => {
+            container.innerHTML = '<div class="alert alert-danger">Помилка мережі: ' + error.message + '</div>';
+        });
+}
+
+function displayGroups(groups) {
+    const container = document.getElementById('groups-container');
+    
+    if (groups.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Груп товарів поки немає.</div>';
+        return;
+    }
+    
+    let html = '<div class="row">';
+    groups.forEach(group => {
+        html += `
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">${group.Name}</h6>
+                        <p class="card-text text-muted small">${group.Description || 'Немає опису'}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Товарів: ${group.ProductsCount}</small>
+                            <small class="text-muted">/${group.Slug}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+</script>
