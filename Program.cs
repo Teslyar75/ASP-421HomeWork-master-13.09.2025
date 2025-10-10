@@ -4,7 +4,6 @@ using ASP_421.Services.Kdf;
 using ASP_421.Services.Random;
 using ASP_421.Services.Confirmation;
 using Microsoft.EntityFrameworkCore;
-using ASP_421.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +12,6 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddSingleton<IRandomService, DefaultRandomService>();
 builder.Services.AddSingleton<IKdfService, PbKdf1Service>();
-builder.Services.AddSingleton<IStorageService, DiskStorageService>();
 builder.Services.AddScoped<IConfirmationCodeService, ConfirmationCodeService>();
 
 builder.Services.AddDbContext<DataContext>(options => 
